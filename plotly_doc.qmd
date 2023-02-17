@@ -1,0 +1,77 @@
+---
+title: "chris_plotly"
+format: html
+editor: visual
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# install.packages("fields"); install.packages("plotly")
+# install.packages("IRdisplay");install.packages("htmltools")
+# install.packages("akima")
+# install.packages(c('repr', 'IRdisplay', 'pbdZMQ', 'devtools'))
+# install.packages("reshape2")
+
+library(tidyverse)
+library(plotly)
+library(reshape2)
+library(akima)
+library(fields)
+#library(readr) # part of tidyverse
+#library(ggplot2) # part of tidyverse
+library(IRdisplay)
+library(htmltools)
+```
+
+Below is a mix of code and results. The chunk options can be set to show code or just outcome etc.
+e.g. message=FALSE, warning=FALSE, include=FALSE
+
+The document can be a mix of R, Python and/or Julia
+
+```{r read data}
+
+df <- read.csv("https://raw.githubusercontent.com/christopherpaine/MDD/main/Mortality_tables/HMD_UK_males_1x1.csv")
+df <- subset(df, Age != '110+')
+head(df)
+
+```
+
+```{r}
+df$Age <- as.numeric(df$Age)
+str(df)
+```
+
+```{r  warning=FALSE}
+xi <- seq(min(df$Age), max(df$Age), length = 100)
+yi <- seq(min(df$Year), max(df$Year), length = 100)
+x = df$Age;
+y =df$Year; 
+z = df$qx
+
+Z <- interp(x, y, z, xi, yi, extrap = TRUE)$z
+
+class(Z)
+Z <- t(Z)
+z_log <- log10(Z)
+```
+
+Plotly outcome is rendered directly:
+```{r}
+# create plot
+fig3 <- plot_ly(x = xi, y = yi, z = Z,
+                type = "surface", colors = "Blues",
+                surfacecolor = z_log) %>%
+  layout(scene = list(zaxis = list(type = "log",
+                            gridcolor = "black",
+                            gridwidth = 0.5,
+                            tickvals = c(round(min(Z), 5), 0.0001, 0.001, 0.01, 0.1, max(Z)),
+                            ticktext = c("0", "0.0001", "0.001", "0.01", "0.1", "1")),
+                xaxis = list(gridcolor = "black", gridwidth = 0.5),
+                yaxis = list(gridcolor = "black", gridwidth = 0.5)),
+                template = "plotly_white") %>%
+  colorbar(tickmode = "array",
+           tickvals = log10(c(round(min(Z), 5), 0.0001, 0.001, 0.01, 0.1, max(Z))),
+           ticktext = c("0", "0.0001", "0.001", "0.01", "0.1", "1"),
+           len = 0.85)
+
+fig3
+```
